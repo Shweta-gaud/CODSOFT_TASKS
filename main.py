@@ -1,215 +1,121 @@
-import tkinter as tk
-from datetime import datetime
-from tkinter import scrolledtext
+import math
 
-from chatbot import get_response
+board = [" " for _ in range(9)]
 
+def print_board():
+    print()
+    print(board[0] + " | " + board[1] + " | " + board[2])
+    print("--+---+--")
+    print(board[3] + " | " + board[4] + " | " + board[5])
+    print("--+---+--")
+    print(board[6] + " | " + board[7] + " | " + board[8])
+    print()
 
-def send_message():
-    send_button.config(bg="#9b6aa0")
-    window.after(150, lambda: send_button.config(bg="#c99acb"))
-    
-    user_message = entry.get()
+def check_winner():
+    winning_combinations = [
+        (0, 1, 2), (3, 4, 5), (6, 7, 8),
+        (0, 3, 6), (1, 4, 7), (2, 5, 8),
+        (0, 4, 8), (2, 4, 6)
+    ]
 
-    if user_message.strip() == "":
-        chat_box.insert(
-            tk.END,
-            "\nBot: Please type a message first.\n\n",
-            "bot"
-        )
-        entry.focus_set()
-        return
+    for a, b, c in winning_combinations:
+        if board[a] == board[b] == board[c] and board[a] != " ":
+            return board[a]
 
-    current_time = datetime.now().strftime("%I:%M %p")
+    if " " not in board:
+        return "Draw"
 
-    chat_box.insert(
-        tk.END,
-        f"\n[{current_time}]\nYou: {user_message}\n",
-        "user"
-    )
+    return None
 
-    response = get_response(user_message)
+def minimax(is_maximizing):
+    result = check_winner()
 
-    chat_box.insert(
-        tk.END,
-        f"Bot: {response}\n\n",
-        "bot"
-    )
+    if result == "O":
+        return 1
+    if result == "X":
+        return -1
+    if result == "Draw":
+        return 0
 
-    entry.delete(0, tk.END)
-    chat_box.see(tk.END)
+    if is_maximizing:
+        best_score = -math.inf
 
-    entry.focus_set()
+        for i in range(9):
+            if board[i] == " ":
+                board[i] = "O"
+                score = minimax(False)
+                board[i] = " "
+                best_score = max(best_score, score)
 
+        return best_score
 
-def clear_chat():
-    chat_box.delete(1.0, tk.END)
+    else:
+        best_score = math.inf
 
-    chat_box.insert(
-        tk.END,
-        "Welcome to CodSoft AI Chatbot\n"
-        "──────────────────────────────────\n"
-        "Type your message to begin.\n\n"
-    )
+        for i in range(9):
+            if board[i] == " ":
+                board[i] = "X"
+                score = minimax(True)
+                board[i] = " "
+                best_score = min(best_score, score)
 
-    entry.focus_set()
+        return best_score
 
+def computer_move():
+    best_score = -math.inf
+    best_move = None
 
-window = tk.Tk()
-window.title("CodSoft AI Chatbot")
-window.geometry("720x720")
-window.configure(bg="#f7eef8")
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "O"
+            score = minimax(False)
+            board[i] = " "
 
+            if score > best_score:
+                best_score = score
+                best_move = i
 
-# Header
-header = tk.Label(
-    window,
-    text="CodSoft AI Chatbot",
-    font=("Arial", 21, "bold"),
-    bg="#ead7f0",
-    fg="#684a72",
-    pady=15
-)
-header.pack(fill=tk.X)
+    return best_move
 
+print("TIC-TAC-TOE AI")
+print("You are X and Computer is O")
+print("AI uses the Minimax algorithm.")
+print("Choose positions from 1 to 9.")
 
-subtitle = tk.Label(
-    window,
-    text="Your little AI conversation space",
-    font=("Arial", 10),
-    bg="#ead7f0",
-    fg="#92799a",
-    pady=3
-)
-subtitle.pack(fill=tk.X)
+while True:
+    print_board()
 
+    try:
+        player_move = int(input("Enter your move (1-9): ")) - 1
 
-# Chat box
-chat_box = scrolledtext.ScrolledText(
-    window,
-    wrap=tk.WORD,
-    font=("Arial", 12),
-    bg="#fffafd",
-    fg="#514653",
-    insertbackground="#8d6b91",
-    selectbackground="#ead7f0",
-    selectforeground="#514653",
-    relief=tk.FLAT,
-    borderwidth=0
-)
+        if player_move < 0 or player_move > 8:
+            print("Please enter a number between 1 and 9.")
+            continue
 
-chat_box.tag_config(
-    "user",
-    foreground="#8a5c83",
-    font=("Arial", 12, "bold")
-)
+        if board[player_move] != " ":
+            print("That position is already occupied.")
+            continue
 
-chat_box.tag_config(
-    "bot",
-    foreground="#63758c",
-    font=("Arial", 12)
-)
+        board[player_move] = "X"
 
-chat_box.pack(
-    padx=18,
-    pady=18,
-    fill=tk.BOTH,
-    expand=True
-)
+        result = check_winner()
 
+        if result:
+            print_board()
+            print("Result:", result)
+            break
 
-# Input
-entry = tk.Entry(
-    window,
-    font=("Arial", 13),
-    bg="white",
-    fg="#4A3B52",
-    insertbackground="#7B4B8A",
-    relief=tk.SOLID,
-    bd=1
-)
+        ai_move = computer_move()
+        board[ai_move] = "O"
 
-entry.pack(
-    fill=tk.X,
-    padx=18,
-    pady=10,
-    ipady=10
-)
+        print("Computer chose position:", ai_move + 1)
 
-# Press Enter to send
-entry.bind("<Return>", lambda event: send_message())
+        result = check_winner()
 
+        if result:
+            print_board()
+            print("Result:", result)
+            break
 
-# Buttons
-button_frame = tk.Frame(
-    window,
-    bg="#f7eef8"
-)
-
-button_frame.pack(pady=12)
-
-
-send_button = tk.Button(
-    button_frame,
-    text="Send",
-    command=send_message,
-    bg="#c99acb",
-    fg="white",
-    activebackground="#9b6aa0",
-    activeforeground="white",
-    font=("Arial", 11, "bold"),
-    width=14,
-    relief=tk.FLAT,
-    bd=0,
-    cursor="hand2"
-)
-
-send_button.pack(side=tk.LEFT, padx=6)
-
-clear_button = tk.Button(
-    button_frame,
-    text="Clear Chat",
-    command=clear_chat,
-    bg="#ded1e2",
-    fg="#5d4563",
-    activebackground="#cfc0d4",
-    activeforeground="#5d4563",
-    font=("Arial", 11),
-    width=14,
-    relief=tk.FLAT,
-    bd=0,
-    cursor="hand2"
-)
-
-clear_button.pack(side=tk.LEFT, padx=6)
-
-
-# Welcome message
-chat_box.insert(
-    tk.END,
-    "Welcome to CodSoft AI Chatbot\n"
-    "──────────────────────────────────\n"
-    "Type your message to begin.\n\n"
-    "Commands:\n"
-    "hi\n"
-    "good morning\n"
-    "good night\n"
-    "name\n"
-    "who are you\n"
-    "thank you\n"
-    "how are you\n"
-    "help\n"
-    "time\n"
-    "date\n"
-    "joke\n"
-    "motivate\n"
-    "course\n"
-    "bye\n"
-)
-
-
-# Automatically place cursor in typing box
-entry.focus_set()
-
-
-window.mainloop()
+    except ValueError:
+        print("Please enter a valid number.")
